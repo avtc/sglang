@@ -11,11 +11,7 @@ from sglang.srt.distributed import (
     get_moe_expert_parallel_world_size,
     get_moe_tensor_parallel_rank,
     get_moe_tensor_parallel_world_size,
-    get_tp_group,
     tensor_model_parallel_all_reduce,
-)
-from sglang.srt.distributed.device_communicators.pynccl_allocator import (
-    use_symmetric_memory,
 )
 from sglang.srt.eplb.expert_location import get_global_expert_location_metadata
 from sglang.srt.layers.moe import (
@@ -24,7 +20,6 @@ from sglang.srt.layers.moe import (
     should_use_flashinfer_trtllm_moe,
 )
 from sglang.srt.layers.moe.token_dispatcher.standard import (
-    CombineInput,
     StandardDispatcher,
     StandardDispatchOutput,
 )
@@ -72,16 +67,6 @@ if should_use_flashinfer_trtllm_moe():
         trtllm_fp4_block_scale_moe = None
 
 logger = logging.getLogger(__name__)
-
-
-def _is_fp4_quantization_enabled():
-    """Check if ModelOpt FP4 quantization is enabled."""
-    try:
-        # Use the same simple check that works for class selection
-        quantization = global_server_args_dict.get("quantization")
-        return quantization == "modelopt_fp4"
-    except:
-        return False
 
 
 def _get_tile_tokens_dim(num_tokens, top_k, num_experts):
@@ -585,7 +570,10 @@ class FusedMoE(torch.nn.Module):
             )
 
         # Flashinfer assumes w31 format for w13_weight. Same for the scales.
-        if should_use_flashinfer_trtllm_moe():
+        if should_use_flashinfer_trtllm_moe() and (
+            isinstance(self.quant_method, ModelOptNvFp4FusedMoEMethod)
+            or isinstance(self.quant_method, Fp8MoEMethod)
+        ):
             shard_id = {"w1": "w3", "w3": "w1", "w2": "w2"}[shard_id]
 
         WEIGHT_SCALE_SUPPORTED = [e.value for e in FusedMoeWeightScaleSupported]

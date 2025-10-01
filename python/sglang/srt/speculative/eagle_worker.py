@@ -34,16 +34,18 @@ from sglang.srt.speculative.eagle_draft_cuda_graph_runner import (
 from sglang.srt.speculative.eagle_draft_extend_cuda_graph_runner import (
     EAGLEDraftExtendCudaGraphRunner,
 )
-from sglang.srt.speculative.eagle_utils import (
+from sglang.srt.speculative.eagle_info import (
     EagleDraftInput,
     EagleVerifyInput,
     EagleVerifyOutput,
+)
+from sglang.srt.speculative.spec_info import SpeculativeAlgorithm
+from sglang.srt.speculative.spec_utils import (
     assign_draft_cache_locs,
     fast_topk,
     generate_token_bitmask,
     select_top_k_tokens,
 )
-from sglang.srt.speculative.spec_info import SpeculativeAlgorithm
 from sglang.srt.utils import (
     empty_context,
     get_available_gpu_memory,
@@ -770,6 +772,10 @@ class EAGLEWorker(TpModelWorker):
             hidden_states = logits_output.hidden_states
 
         return score_list, token_list, parents_list
+
+    def clear_cache_pool(self):
+        self.model_runner.req_to_token_pool.clear()
+        self.model_runner.token_to_kv_pool_allocator.clear()
 
     def verify(self, batch: ScheduleBatch, spec_info: EagleVerifyInput):
         spec_info.prepare_for_verify(batch, self.page_size)

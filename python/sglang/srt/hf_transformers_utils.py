@@ -38,6 +38,7 @@ from sglang.srt.configs import (
     ChatGLMConfig,
     DbrxConfig,
     DeepseekVL2Config,
+    DotsOCRConfig,
     DotsVLMConfig,
     ExaoneConfig,
     KimiVLConfig,
@@ -62,6 +63,7 @@ _CONFIG_REGISTRY: Dict[str, Type[PretrainedConfig]] = {
     LongcatFlashConfig.model_type: LongcatFlashConfig,
     Qwen3NextConfig.model_type: Qwen3NextConfig,
     DotsVLMConfig.model_type: DotsVLMConfig,
+    DotsOCRConfig.model_type: DotsOCRConfig,
 }
 
 for name, cls in _CONFIG_REGISTRY.items():
@@ -374,8 +376,8 @@ def get_processor(
         **kwargs,
     )
 
-    # fix: for Qwen2-VL model, inject default 'size' if not provided.
-    if config.model_type in {"qwen2_vl"}:
+    # fix: for Qwen2-VL and Sarashina2Vision models, inject default 'size' if not provided.
+    if config.model_type in {"qwen2_vl", "sarashina2_vision"}:
         if "size" not in kwargs:
             kwargs["size"] = {"shortest_edge": 3136, "longest_edge": 1003520}
 
